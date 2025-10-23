@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini LeetCode Clone - Single File</title>
+  <style>
+    :root{
+      --bg: #0b1020;
+      --panel: #141a2b;
+      --card: #1e2540;
+      --text: #e9eaf5;
+      --muted: #a6b0d4;
+      --primary: #7aa2ff;
+      --green: #4cd97b;
+      --red: #ff6b7a;
+      --border: rgba(255,255,255,.08);
+      --shadow: 0 10px 25px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html, body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system;
+      background: radial-gradient( circle at 20% -10%, rgba(122,162,255,.15), transparent 40% ),
+                  radial-gradient( circle at 100% 0%, rgba(124, 92, 255,.15), transparent 40% ),
+                  var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+    header.app-header{
+      position: sticky; top:0; z-index: 10;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 20px; border-bottom:1px solid var(--border);
+      background: rgba(10,12,28,.9);
+      backdrop-filter: saturate(1.2) blur(6px);
+    }
+    header .brand{ display:flex; align-items:center; gap:12px; }
+    .logo{
+      width:34px; height:34px; border-radius:9px;
+      background: linear-gradient(135deg, #6b9cff 0%, #8e6dff 60%, #4bd6a1 100%);
+      box-shadow: inset 0 0 12px rgba(255,255,255,.4);
+    }
+    header h1{ font-size: 1.05rem; margin:0; letter-spacing:.2px}
+    header .subtitle{ font-size:.85rem; color: var(--muted) }
+
+    .container{
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      height: calc(100vh - 68px);
+    }
+
+    aside.sidebar{
+      border-right:1px solid var(--border);
+      padding:14px 14px 20px;
+      overflow:auto;
+      background: linear-gradient(#0e1224, #0b1020);
+    }
+
+    .sidebar-header{
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .sidebar-header h2{ margin:0; font-size:1rem; letter-spacing:.4px}
+    .toggle-sidenav{ background: transparent; border:1px solid var(--border);
+      color:var(--text); padding:6px 10px; border-radius:6px; cursor:pointer;
+    }
+    #search{ width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border);
+      background:#1b1f34; color:var(--text); outline:none; margin:8px 0 12px;
+    }
+    .filters{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px}
+    .filter-btn{ padding:6px 10px; border-radius:6px; border:1px solid var(--border);
+      background:#1b2140; color:var(--text); cursor:pointer; font-size:.85rem;
+    }
+    .filter-btn.active{ background: #2a2f62; border-color:#5661d9; color:white; }
+    ul#problemList{ list-style:none; padding:0; margin:0; }
+    li.problem-item{ display:flex; align-items:center; justify-content:space-between;
+      padding:10px 10px; border-radius:8px; cursor:pointer; border:1px solid transparent; margin-bottom:6px;
+      background: rgba(255,255,255,.02);
+    }
+    li.problem-item:hover{ background: rgba(255,255,255,.04); border:1px solid var(--border); }
+    .title{ font-weight:500; font-size:.92rem; }
+    .badge{ padding:4px 8px; border-radius:999px; font-size:.75rem; background:#2a2f62; color:white }
+    .diff-Easy{ background:#2b8a6a; }
+    .diff-Medium{ background:#a67c52; }
+    .diff-Hard{ background:#8946a6; }
+
+    main.content{ padding:20px; overflow:auto; }
+
+    .card{ background: rgba(20,26,60,.92); border:1px solid var(--border);
+      border-radius:12px; padding:16px; margin-bottom:14px; box-shadow: var(--shadow);
+    }
+    .problem-header{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+    #problemTitle{ margin:0; font-size:1.4rem; }
+    #problemDiff{ padding:6px 10px; border-radius:999px; font-size:.75rem; }
+    #problemDesc{ color:#d6d9f7; line-height:1.5; margin-top:6px; }
+
+    .problem-samples{ margin-top:8px; }
+    .problem-samples h3{ margin:6px 0 8px; font-size: .95rem; color:#dbe3ff}
+    .problem-samples pre{ background:#0b1130; padding:8px 10px; border-radius:6px; overflow:auto; color:#e7eafc; border:1px solid var(--border) }
+
+    .editorCard{ display:flex; flex-direction:column; }
+    #codeEditor{ width:100%; height:210px; resize:vertical; padding:12px; border-radius:8px;
+      border:1px solid var(--border); background:#0a0f26; color:#e6eaff; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace;
+      font-size:.92rem;
+    }
+    .editorActions{ display:flex; gap:10px; align-items:center; margin-top:10px; }
+    .btn{ padding:9px 14px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:#2a2f62; color:white; }
+    .btn.primary{ background: var(--primary); border:1px solid rgba(122,162,255,.9); }
+    .btn.secondary{ background:#1b2140; }
+    .results{ margin-top:10px; padding:8px 10px; border-radius:8px; background:#0b1130; border:1px solid var(--border); }
+
+    .result-line{ display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dashed var(--border); }
+    .status{ font-weight:600; padding:4px 8px; border-radius:6px; font-size:.85rem; }
+    .passed{ background: rgba(76,217,120,.25); color:#9bf0a0; border:1px solid rgba(76,217,120,.6) }
+    .failed{ background: rgba(255,107,122,.25); color:#ffb0bd; border:1px solid rgba(255,107,122,.6) }
+    .inputSummary{ color:#b8c3f7; font-family: ui-monospace, monospace; font-size:.9rem; }
+
+    @media (max-width: 980px){
+      .container{ grid-template-columns: 1fr; height: auto; }
+      aside.sidebar{ order: 2; height:auto; position: relative; }
+      main.content{ order: 1; height:auto; }
+    }
+
+  </style>
+</head>
+<body>
+  <header class="app-header" aria-label="Header">
+    <div class="brand">
+      <div class="logo" aria-label="Logo"></div>
+      <div>
+        <h1>Mini LeetCode Clone</h1>
+        <div class="subtitle">A tiny, in-browser coding challenge playground</div>
+      </div>
+    </div>
+    <button class="toggle-sidenav" id="toggleSidebar" aria-label="Toggle sidebar">Toggle List</button>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar" id="sidebar" aria-label="Problems Sidebar">
+      <div class="sidebar-header">
+        <h2>Problems</h2>
+        <button class="toggle-sidenav" id="collapseSidebar" aria-label="Collapse">Collapse</button>
+      </div>
+      <input id="search" placeholder="Search problems (e.g., Two Sum, Reverse)" />
+      <div class="filters" aria-label="Difficulty filters">
+        <button class="filter-btn active" data-diff="All">All</button>
+        <button class="filter-btn" data-diff="Easy">Easy</button>
+        <button class="filter-btn" data-diff="Medium">Medium</button>
+        <button class="filter-btn" data-diff="Hard">Hard</button>
+      </div>
+      <ul id="problemList" aria-label="Problem list"></ul>
+    </aside>
+
+    <main class="content" id="content" aria-label="Problem content">
+      <section class="card" id="problemIntro" aria-label="Problem overview" style="display:none;">
+        <div class="problem-header">
+          <h2 id="problemTitle" style="margin:0 0 6px;"></h2>
+          <span id="problemDiff" class="badge" style="display:inline-flex; align-items:center;"></span>
+        </div>
+        <p id="problemDesc"></p>
+        <div class="problem-samples" id="problemSamples">
+          <h3>Examples</h3>
+          <pre id="sampleInputs"></pre>
+        </div>
+      </section>
+
+      <section class="card editorCard" id="editorCard" aria-label="Editor and tests" style="display:none;">
+        <h3 style="margin:0 0 8px 0;">Your Solution</h3>
+        <textarea id="codeEditor" placeholder="// Implement solve(input) to handle the given problem.\n// Example:\n// function solve(input) {\n//   // your code here\n// }\n"></textarea>
+        <div class="editorActions">
+          <button class="btn primary" id="runBtn" aria-label="Submit solution">Submit</button>
+          <button class="btn" id="resetBtn" aria-label="Reset code">Reset</button>
+          <span class="inputSummary" id="summary" aria-live="polite" style="margin-left:auto;"></span>
+        </div>
+        <div id="results" class="results" aria-label="Test results"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Problem definitions
+    const PROBLEMS = [
+      {
+        id: 'two-sum',
+        title: 'Two Sum',
+        difficulty: 'Easy',
+        description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.',
+        tags: ['array', 'hash-table'],
+        tests: [
+          { input: { nums: [2,7,11,15], target: 9 }, expected: [0,1] },
+          { input: { nums: [3,2,4], target: 6 }, expected: [1,2] },
+          { input: { nums: [3,3], target: 6 }, expected: [0,1] }
+        ]
+      },
+      {
+        id: 'reverse-string',
+        title: 'Reverse String',
+        difficulty: 'Easy',
+        description: 'Given a string s, return the string reversed.',
+        tags: ['string'],
+        tests: [
+          { input: "hello", expected: "olleh" },
+          { input: "OpenAI", expected: "IAnepO" }
+        ]
+      },
+      {
+        id: 'fizz-buzz',
+        title: 'Fizz Buzz',
+        difficulty: 'Easy',
+        description: 'Return the numbers from 1 to n as strings. For multiples of 3 use "Fizz", for multiples of 5 use "Buzz", and for multiples of both print "FizzBuzz".',
+        tags: ['math', 'loop'],
+        tests: [
+          { input: 5, expected: ["1","2","Fizz","4","Buzz"] },
+          { input: 3, expected: ["1","2","Fizz"] }
+        ]
+      },
+      {
+        id: 'max-subarray',
+        title: 'Maximum Subarray',
+        difficulty: 'Medium',
+        description: 'Given an integer array nums, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum.',
+        tags: ['array', 'dp'],
+        tests: [
+          { input: [-2,1,-3,4,-1,2,1,-5,4], expected: 6 },
+          { input: [1], expected: 1 },
+          { input: [-2,-3,-1,-5], expected: -1 }
+        ]
+      }
+    ];
+
+    // DOM helpers
+    const problemListEl = document.getElementById('problemList');
+    const searchEl = document.getElementById('search');
+    const sidebar = document.getElementById('sidebar');
+    const toggleSidebarBtn = document.getElementById('toggleSidebar');
+    const collapseSidebarBtn = document.getElementById('collapseSidebar');
+    const problemIntroSection = document.getElementById('problemIntro');
+    const problemTitleEl = document.getElementById('problemTitle');
+    const problemDescEl = document.getElementById('problemDesc');
+    const problemDiffBadge = document.getElementById('problemDiff');
+    const problemSamplesEl = document.getElementById('problemSamples');
+    const sampleInputsEl = document.getElementById('sampleInputs');
+    const editorCard = document.getElementById('editorCard');
+    const codeEditor = document.getElementById('codeEditor');
+    const runBtn = document.getElementById('runBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const resultsEl = document.getElementById('results');
+    const summaryEl = document.getElementById('summary');
+    const problemIntroContainer = document.getElementById('problemIntro');
+    const problemDiffClasses = {
+      Easy: 'diff-Easy',
+      Medium: 'diff-Medium',
+      Hard: 'diff-Hard'
+    };
+
+    // State
+    let currentProblem = null;
+    let fullProblemList = PROBLEMS;
+    let currentFilter = 'All';
+    let searchQuery = '';
+
+    // Initialize
+    function init(){
+      renderProblemList();
+      attachEventHandlers();
+    }
+
+    function attachEventHandlers(){
+      // Sidebar toggles for small screens
+      toggleSidebarBtn.addEventListener('click', () => {
+        sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
+      });
+      collapseSidebarBtn.addEventListener('click', () => {
+        sidebar.style.display = 'none';
+      });
+
+      // Search and filter
+      searchEl.addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase();
+        renderProblemList();
+      });
+
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.diff;
+          renderProblemList();
+        });
+      });
+
+      // Run / Reset
+      runBtn.addEventListener('click', onSubmit);
+      resetBtn.addEventListener('click', () => {
+        codeEditor.value = getStarterCodeForProblem(currentProblem);
+        clearResults();
+      });
+    }
+
+    function clearResults(){
+      resultsEl.innerHTML = '';
+      summaryEl.textContent = '';
+    }
+
+    function renderProblemList(){
+      problemListEl.innerHTML = '';
+      const query = searchQuery;
+      const diff = currentFilter;
+
+      const items = fullProblemList.filter(p => {
+        const matchesQuery = !query || (p.title.toLowerCase().includes(query) || p.description.toLowerCase().includes(query) || p.tags.join(' ').toLowerCase().includes(query));
+        const matchesDiff = diff === 'All' || p.difficulty === diff;
+        return matchesQuery && matchesDiff;
+      });
+
+      if(items.length === 0){
+        problemListEl.innerHTML = '<li style="padding:12px 8px; color:var(--muted)">No problems found.</li>';
+        return;
+      }
+
+      items.forEach(p => {
+        const li = document.createElement('li');
+        li.className = 'problem-item';
+        li.dataset.id = p.id;
+        li.innerHTML = `
+          <span class="title">${p.title}</span>
+          <span class="badge ${problemBadgeClass(p.difficulty)}" aria-label="Difficulty">${p.difficulty}</span>
+        `;
+        li.addEventListener('click', () => loadProblem(p.id));
+        problemListEl.appendChild(li);
+      });
+    }
+
+    function problemBadgeClass(difficulty){
+      switch(difficulty){
+        case 'Easy': return 'diff-Easy';
+        case 'Medium': return 'diff-Medium';
+        case 'Hard': return 'diff-Hard';
+        default: return '';
+      }
+    }
+
+    function loadProblem(problemId){
+      const p = PROBLEMS.find(x => x.id === problemId);
+      if(!p) return;
+      currentProblem = p;
+
+      // Update UI
+      problemIntroSection.style.display = 'block';
+      problemIntroSection.scrollIntoView({behavior:'smooth', block:'start'});
+      problemTitleEl.textContent = p.title;
+      problemDescEl.textContent = p.description;
+      problemDiffBadge.textContent = p.difficulty;
+      problemDiffBadge.className = 'badge ' + problemBadgeClass(p.difficulty);
+      problemSamplesEl.style.display = p.tests && p.tests.length ? 'block' : 'none';
+
+      // Build sample inputs as JSON-like display
+      const sampleText = p.tests.map((t, idx) => {
+        return 'Test ' + (idx+1) + ' input: ' + stringifyInput(t.input) + '\\nExpected: ' + stringifyInput(t.expected);
+      }).join('\\n\\n');
+      sampleInputsEl.textContent = sampleText || 'No samples available.';
+
+      // Editor
+      editorCard.style.display = 'block';
+      codeEditor.value = getStarterCodeForProblem(p);
+      clearResults();
+      // Focus editor
+      setTimeout(() => codeEditor.focus(), 50);
+    }
+
+    function stringifyInput(v){
+      try{ return typeof v==='string' ? '"' + v + '"' : JSON.stringify(v); } catch(e){ return String(v); }
+    }
+
+    function getStarterCodeForProblem(p){
+      // A small template per problem with the function solve(input)
+      // We keep it generic to avoid implying exact solution.
+      const template = `// Problem: ${p.title}\\n` +
+        `// Implement a function solve(input) that returns the correct output for the given problem.\\n` +
+        `// The runtime harness will call: solve(input) and compare with expected output.\\n` +
+        `// Example signature:\\n` +
+        `// function solve(input) {\\n  // your code here\\n  return null;\\n}\\n\\n` +
+        `function solve(input){\\n  // TODO: implement\\n  return null;\\n}\\n`;
+      return template;
+    }
+
+    function onSubmit(){
+      if(!currentProblem){
+        alert('Please select a problem from the left list.');
+        return;
+      }
+      const userCode = codeEditor.value;
+      let solveFn;
+      try{
+        const loader = new Function(userCode + "\\n return typeof solve === 'function' ? solve : null;");
+        solveFn = loader();
+      } catch(err){
+        displayError('Error compiling your code: ' + err.message);
+        return;
+      }
+      if(!solveFn){
+        displayError('No function named "solve(input)" found. Make sure to define function solve(input).');
+        return;
+      }
+
+      // Run tests
+      const tests = currentProblem.tests;
+      const results = [];
+      let passedCount = 0;
+      for(let i=0; i<tests.length; i++){
+        const t = tests[i];
+        let actual;
+        try{
+          actual = solveFn(t.input);
+        } catch(err){
+          actual = { error: err.message };
+        }
+        const ok = deepEqual(actual, t.expected);
+        if(ok) passedCount++;
+        results.push({ idx: i+1, input: t.input, expected: t.expected, actual: actual, ok });
+      }
+
+      renderResults(results, passedCount, tests.length);
+    }
+
+    function deepEqual(a,b){
+      if (a === b) return true;
+      if (typeof a !== typeof b) return false;
+      if (typeof a === 'object' && a !== null && b !== null){
+        if (Array.isArray(a) !== Array.isArray(b)) return false;
+        if (Array.isArray(a)){
+          if (a.length !== b.length) return false;
+          for(let i=0;i<a.length;i++){
+            if(!deepEqual(a[i], b[i])) return false;
+          }
+          return true;
+        } else {
+          const aKeys = Object.keys(a);
+          const bKeys = Object.keys(b);
+          if (aKeys.length !== bKeys.length) return false;
+          for(let key of aKeys){
+            if(!deepEqual(a[key], b[key])) return false;
+          }
+          return true;
+        }
+      }
+      // primitive
+      return false;
+    }
+
+    function renderResults(results, passed, total){
+      resultsEl.innerHTML = '';
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+      header.style.marginBottom = '6px';
+      header.innerHTML = `<strong>Test Results</strong> <span>${passed} / ${total} passed</span>`;
+      resultsEl.appendChild(header);
+
+      results.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'result-line';
+        const inputRep = typeof r.input === 'object' ? JSON.stringify(r.input) : String(r.input);
+        const expectedRep = typeof r.expected === 'object' ? JSON.stringify(r.expected) : String(r.expected);
+        row.innerHTML = `
+          <span>Test ${r.idx}: input=${escapeHtml(inputRep)}</span>
+          <span class="status ${r.ok ? 'passed' : 'failed'}">${r.ok ? 'Passed' : 'Failed'}</span>
+        `;
+        const extra = document.createElement('div');
+        extra.style.marginLeft = '12px';
+        extra.style.fontFamily = 'ui-monospace, monospace';
+        extra.style.fontSize = '.85rem';
+        extra.style.color = '#cbd6ff';
+        extra.style.opacity = '.9';
+        extra.textContent = 'Expected ' + escapeHtml(expectedRep) + ' | Got ' + escapeHtml(stringifyValue(r.actual));
+        row.appendChild(extra);
+        resultsEl.appendChild(row);
+      });
+
+      // Summary
+      const summary = document.createElement('div');
+      summary.style.marginTop = '6px';
+      summary.style.fontSize = '.9rem';
+      summary.style.color = '#d7e0ff';
+      summary.textContent = 'Tip: Use edge cases and try different inputs to improve your solution.';
+      resultsEl.appendChild(summary);
+      summaryEl.textContent = `${passed} / ${total} tests passed`;
+    }
+
+    function escapeHtml(str){
+      if (typeof str !== 'string') return str;
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function stringifyValue(v){
+      try{
+        if (typeof v === 'object') return JSON.stringify(v);
+        return String(v);
+      } catch(e){
+        return '[unserializable]';
+      }
+    }
+
+    function displayError(msg){
+      resultsEl.innerHTML = '';
+      const el = document.createElement('div');
+      el.style.color = '#ffd6d6';
+      el.style.background = 'rgba(255,0,0,.08)';
+      el.style.padding = '8px 10px';
+      el.style.borderRadius = '6px';
+      el.textContent = msg;
+      resultsEl.appendChild(el);
+    }
+
+    // Initialize app
+    init();
+
+  </script>
+</body>
+</html>
